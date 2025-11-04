@@ -1,4 +1,4 @@
-from cybulde.configs_schemas import config_schema
+from cybulde.configs_schemas.config_schema import setup_config as _setup_config 
 
 from typing import Any, Optional
 import yaml
@@ -23,7 +23,7 @@ def get_config(config_path: str, config_name: str) -> TaskFunction:
     return main_decorator
 
 def setup_config() -> None:
-    config_schema.setup_config()
+    _setup_config()
 
 def setup_logger() -> None:
     with open("./cybulde/configs/hydra/job_logging/custom.yaml","r") as stream:

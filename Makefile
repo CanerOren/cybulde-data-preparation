@@ -26,8 +26,8 @@ guard-%:
 	@#$(or ${$*}, $(error $* is not set))
 
 ## Call prepare-dataset
-prepare-dataset: up
-	$(DOCKER_COMPOSE_EXEC) python ./cybulde/prepare-dataset.py
+process-data: up
+	$(DOCKER_COMPOSE_EXEC) python ./cybulde/process_data.py
 
 ## Starts jupyter lab
 notebook: up
