@@ -1,0 +1,7 @@
+*
+
+!docker
+!cybulde
+!pyproject.toml
+!poetry.lock
+!docker/scripts/**

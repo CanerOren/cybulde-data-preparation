@@ -1,0 +1,20 @@
+services:
+  app:
+    user: "${USER_ID:-1000}"
+    hostname: "${HOST_NAME:-DESKTOP-IE8NCSC}"
+    image: cybulde-data-preparation
+    platform: linux/amd64
+    container_name: cybulde-data-preparation-container
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+      args:
+        USER_NAME: "${USER_NAME:-caner}"
+        USER_ID: "${USER_ID:-1000}"
+    volumes:
+      - ./:/app/
+      - ~/.config/gcloud/:/home/${USER_NAME:-caner}/.config/gcloud
+    ports:
+      - "8080:8080"
+    ipc: host
+    init: true
