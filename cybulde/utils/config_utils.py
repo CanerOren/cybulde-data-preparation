@@ -1,4 +1,4 @@
-from cybulde.configs_schemas.config_schema import setup_config as _setup_config 
+from cybulde.configs_schemas.data_processing_config_schema import setup_config as _setup_config 
 
 from typing import Any, Optional
 import yaml
