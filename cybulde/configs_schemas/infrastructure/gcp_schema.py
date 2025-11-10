@@ -1,10 +1,10 @@
-from pydantic.dataclasses import dataclass
 from hydra.core.config_store import ConfigStore
+from pydantic.dataclasses import dataclass
 
 
 @dataclass
 class GCPConfig:
-    project_id: str = "emkademy-474323" 
+    project_id: str = "emkademy-474323"
 
 
 def setup_config() -> None:

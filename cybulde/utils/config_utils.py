@@ -1,13 +1,15 @@
-from cybulde.configs_schemas.data_processing_config_schema import setup_config as _setup_config 
-
-from typing import Any, Optional
-import yaml
 import logging
 import logging.config
 
+from typing import Any, Optional
+
 import hydra
-from hydra.types import TaskFunction 
-from omegaconf import OmegaConf, DictConfig
+import yaml
+
+from hydra.types import TaskFunction
+from omegaconf import DictConfig, OmegaConf
+
+from cybulde.configs_schemas.data_processing_config_schema import setup_config as _setup_config
 
 
 def get_config(config_path: str, config_name: str) -> TaskFunction:
@@ -19,13 +21,17 @@ def get_config(config_path: str, config_name: str) -> TaskFunction:
         def decorated_main(dict_config: Optional[DictConfig] = None) -> Any:
             config = OmegaConf.to_object(dict_config)
             return task_function(config)
+
         return decorated_main
+
     return main_decorator
+
 
 def setup_config() -> None:
     _setup_config()
 
+
 def setup_logger() -> None:
-    with open("./cybulde/configs/hydra/job_logging/custom.yaml","r") as stream:
+    with open("./cybulde/configs/hydra/job_logging/custom.yaml", "r") as stream:
         config = yaml.load(stream, Loader=yaml.FullLoader)
     logging.config.dictConfig(config)
