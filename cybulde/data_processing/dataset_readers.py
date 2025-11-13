@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 
 from abc import ABC, abstractmethod
-from typing import Optional, cast, Tuple
+from typing import Optional, Tuple, cast
 
 import dask.dataframe as dd
 import pandas as pd
@@ -11,7 +11,7 @@ import pandas as pd
 from dask_ml.model_selection import train_test_split
 
 from cybulde.utils.utils import get_logger
-
+from cybulde.utils.data_utils import repartition_dataframe
 
 class DatasetReader(ABC):
     required_columns = {"text", "label", "split", "dataset_name"}
@@ -33,10 +33,10 @@ class DatasetReader(ABC):
         # 2) Zorlamalı unique: map_partitions + drop_duplicates + union
         splits_df = cast(
             dd.DataFrame,
-            df.map_partitions( # type: ignore[no-untyped-call]
+            df.map_partitions(  # type: ignore[no-untyped-call]
                 lambda pdf: pdf[["split"]].drop_duplicates(),
-                meta=pd.DataFrame({"split": pd.Series([], dtype="object")})
-                ),
+                meta=pd.DataFrame({"split": pd.Series([], dtype="object")}),
+            ),
         )
         unique_split_names = set(
             splits_df["split"].dropna().astype(str).str.strip().drop_duplicates().compute().tolist()
@@ -89,7 +89,7 @@ class DatasetReader(ABC):
         if stratify_column is None:
             return cast(
                 Tuple[dd.DataFrame, dd.DataFrame],
-                train_test_split(df, test_size=test_size, random_state=1234, shuffle=True)
+                train_test_split(df, test_size=test_size, random_state=1234, shuffle=True),
             )
 
         # Stratify değerlerini somutla
@@ -105,7 +105,7 @@ class DatasetReader(ABC):
             # Stratify edecek değer yoksa normal split
             return cast(
                 Tuple[dd.DataFrame, dd.DataFrame],
-                train_test_split(df, test_size=test_size, random_state=1234, shuffle=True)
+                train_test_split(df, test_size=test_size, random_state=1234, shuffle=True),
             )
 
         first_dfs = []
@@ -120,7 +120,7 @@ class DatasetReader(ABC):
         if not first_dfs or not second_dfs:
             return cast(
                 Tuple[dd.DataFrame, dd.DataFrame],
-                train_test_split(df, test_size=test_size, random_state=1234, shuffle=True)
+                train_test_split(df, test_size=test_size, random_state=1234, shuffle=True),
             )
 
         first_df = cast(
@@ -222,10 +222,11 @@ class TwitterDatasetReader(DatasetReader):
 
 
 class DatasetReaderManager:
-    def __init__(self, dataset_readers: dict[str, DatasetReader]) -> None:
+    def __init__(self, dataset_readers: dict[str, DatasetReader], repartition: bool = True) -> None:
         self.dataset_readers = dataset_readers
+        self.repartition = repartition
 
-    def read_data(self) -> dd.DataFrame:
+    def read_data(self, nrof_workers: int) -> dd.DataFrame:
         dfs = [dr.read_data() for dr in self.dataset_readers.values()]
 
         # Union meta (ihtiyaten)
@@ -236,13 +237,20 @@ class DatasetReaderManager:
         for must in ("text", "label", "split", "dataset_name"):
             meta_cols.setdefault(must, pd.Series([], dtype="object"))
         meta = pd.DataFrame(meta_cols)
-
-        return cast(
+        df = cast(
             dd.DataFrame,
-            dd.concat( # type: ignore[no-untyped-call]
+            dd.concat(  # type: ignore[no-untyped-call]
                 dfs,
                 interleave_partitions=True,
                 ignore_unknown_divisions=True,
                 meta=meta,
             ),
         )
+
+        if self.repartition:
+            df = repartition_dataframe(
+                df,
+                nrof_workers = nrof_workers
+            )
+
+        return df
