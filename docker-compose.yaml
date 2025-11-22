@@ -2,9 +2,12 @@ services:
   app:
     user: "${USER_ID:-1000}"
     hostname: "${HOST_NAME:-DESKTOP-IE8NCSC}"
-    image: cybulde-data-preparation
+    image: cybulde-data-processing
     platform: linux/amd64
-    container_name: cybulde-data-preparation-container
+    container_name: cybulde-data-processing-container
+    environment: 
+      - GOOGLE_APPLICATION_CREDENTIALS=./creds/emkademy-474323-887fb2819a7a.json
+      #- GOOGLE_APPLICATION_CREDENTIALS= app/creds/emkademy-474323-887fb2819a7a.json
     build:
       context: .
       dockerfile: ./docker/Dockerfile

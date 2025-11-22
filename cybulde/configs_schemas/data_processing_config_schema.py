@@ -4,9 +4,10 @@ from hydra.core.config_store import ConfigStore
 from omegaconf import MISSING
 from pydantic.dataclasses import dataclass
 
+from cybulde.configs_schemas.dask_cluster import dask_cluster_schema
 from cybulde.configs_schemas.data_processing import dataset_cleaners_schema, dataset_readers_schema
 from cybulde.configs_schemas.infrastructure import gcp_schema
-from cybulde.configs_schemas.dask_cluster import dask_cluster_schema
+
 
 @dataclass
 class DataProcessingConfig:
@@ -15,15 +16,23 @@ class DataProcessingConfig:
     dvc_remote_repo: str = "https://github.com/CanerOren/cybulde-data.git"
     dvc_data_folder: str = "data/raw"
     github_user_name: str = "CanerOren"
-    github_acces_token_secret_id: str = "cybulde-data-github-access-token"
+    github_access_token_secret_id: str = "cybulde-data-github-access-token"
 
     infrastructure: gcp_schema.GCPConfig = field(default_factory=gcp_schema.GCPConfig)
     dataset_reader_manager: dataset_readers_schema.DatasetReaderManagerConfig = MISSING
     dataset_cleaner_manager: dataset_cleaners_schema.DatasetCleanerManagerConfig = MISSING
 
     dask_cluster: dask_cluster_schema.DaskClusterConfig = MISSING
-    
+
     processed_data_save_dir: str = MISSING
+
+    run_tag: str = "default_run"
+
+    docker_image_name: str = MISSING
+    docker_image_tag: str = MISSING
+
+    min_nrof_words: int = 2
+
 
 def setup_config() -> None:
     gcp_schema.setup_config()

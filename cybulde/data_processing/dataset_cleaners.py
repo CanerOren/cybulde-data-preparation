@@ -4,10 +4,48 @@ import re
 import string
 
 from abc import ABC, abstractmethod
+from functools import lru_cache
+
+import nltk
 
 from nltk.tokenize import word_tokenize
 
 from cybulde.utils.utils import SpellCorrectionModel
+
+
+@lru_cache(maxsize=1)
+def _ensure_nltk_and_get_stopwords() -> set[str]:
+    """NLTK kaynaklarını indir ve İngilizce stopword set'ini döndür.
+
+    Dask ile uyumlu olması için:
+    - Sadece düz `set[str]` döndürürüz (LazyCorpusLoader vs yok).
+    - NLTK resource kontrollerini `nltk.data.find` ile yaparız.
+    """
+    # Gerekli paketler kurulu mu diye bak; yoksa indir
+    try:
+        nltk.data.find("corpora/stopwords")
+    except LookupError:
+        nltk.download("stopwords")
+
+    try:
+        nltk.data.find("tokenizers/punkt")
+    except LookupError:
+        nltk.download("punkt")
+
+    # Yeni NLTK sürümlerinde çıkan `punkt_tab` hatası için
+    try:
+        nltk.data.find("tokenizers/punkt_tab")
+    except LookupError:
+        try:
+            nltk.download("punkt_tab")
+        except Exception:
+            # Eski sürümlerde bu paket yok, sessizce geç
+            pass
+
+    # Burada import etmek güvenli, sadece bu fonksiyon içinde kalacak
+    from nltk.corpus import stopwords as nltk_stopwords
+
+    return set(nltk_stopwords.words("english"))
 
 
 class DatasetCleaner(ABC):
@@ -32,32 +70,18 @@ class DatasetCleaner(ABC):
 class StopWordsDatasetCleaner(DatasetCleaner):
     def __init__(self) -> None:
         super().__init__()
-        from nltk import download
-        from nltk.corpus import stopwords
-        from nltk.tokenize import word_tokenize
-
-        # stopwords paketi yoksa indir
-        try:
-            stopwords.words("english")
-        except LookupError:
-            download("stopwords")
-
-        # tokenize için gerekli modeller (yeni ve eski isim)
-        for pkg in ("punkt_tab", "punkt"):
-            try:
-                word_tokenize("Hello.")
-                break
-            except LookupError:
-                download(pkg)
-
-        self.stopwords = set(stopwords.words("english"))
+        # Burada NLTK'yi hazırlarız ve düz Python set'i alırız
+        self.stopwords = _ensure_nltk_and_get_stopwords()
 
     def clean_text(self, text: str) -> str:
-        cleaned_text = [word for word in word_tokenize(text) if word not in self.stopwords]
-        return " ".join(cleaned_text)
+        # Tokenization için NLTK'nin word_tokenize'ını kullanıyoruz
+        tokens = word_tokenize(text)
+        cleaned_tokens = [t for t in tokens if t.lower() not in self.stopwords]
+        return " ".join(cleaned_tokens)
 
     def clean_words(self, words: list[str]) -> list[str]:
-        return [word for word in words if word not in self.stopwords]
+        # words zaten token listesi ise, tekrar tokenize etmeye gerek yok
+        return [w for w in words if w.lower() not in self.stopwords]
 
 
 class ToLowerCaseDatasetCleaner(DatasetCleaner):
